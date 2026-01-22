@@ -88,6 +88,40 @@ sudo-in-terminal -t 60 long-running-command
 5. Returns the output to the original caller
 6. Cleans up temp files
 
+## Touch ID for sudo (macOS)
+
+On macOS, you can use Touch ID (fingerprint) instead of typing your password for sudo. This makes authentication faster and works great with `sudo-in-terminal`.
+
+### Enable Touch ID for sudo
+
+```bash
+# Run the included setup script
+./enable-touchid-sudo
+
+# Or with make
+make enable-touchid
+```
+
+This adds the `pam_tid.so` module to `/etc/pam.d/sudo`.
+
+### Manual setup
+
+Add this line to the top of `/etc/pam.d/sudo` (after the first comment block):
+
+```
+auth       sufficient     pam_tid.so
+```
+
+### Disable Touch ID for sudo
+
+```bash
+sudo sed -i '' '/pam_tid.so/d' /etc/pam.d/sudo
+```
+
+### Note on Apple Silicon Macs
+
+Touch ID for sudo works in Terminal.app and most terminal emulators. If you're using tmux, you may need [pam-reattach](https://github.com/fabianishere/pam_reattach) for Touch ID to work inside tmux sessions.
+
 ## Claude Code Integration
 
 Add to `~/.claude/CLAUDE.md`:

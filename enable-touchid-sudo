@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# enable-touchid-sudo: Enable Touch ID for sudo authentication on macOS
+# This modifies /etc/pam.d/sudo to add the pam_tid.so module
+
+set -euo pipefail
+
+PAM_FILE="/etc/pam.d/sudo"
+PAM_TID_LINE="auth       sufficient     pam_tid.so"
+
+# Check if we're on macOS
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    echo "Error: This script only works on macOS"
+    exit 1
+fi
+
+# Check if Touch ID is available
+if ! biometryutil --availability 2>/dev/null | grep -q "available"; then
+    echo "Error: Touch ID does not appear to be available on this Mac"
+    exit 1
+fi
+
+# Check if already enabled
+if grep -q "pam_tid.so" "$PAM_FILE" 2>/dev/null; then
+    echo "Touch ID for sudo is already enabled!"
+    exit 0
+fi
+
+echo "This will enable Touch ID for sudo authentication."
+echo "You'll be able to use your fingerprint instead of typing your password."
+echo ""
+echo "The following line will be added to $PAM_FILE:"
+echo "  $PAM_TID_LINE"
+echo ""
+
+# Create backup
+BACKUP_FILE="/etc/pam.d/sudo.backup.$(date +%Y%m%d%H%M%S)"
+echo "Creating backup at $BACKUP_FILE..."
+sudo cp "$PAM_FILE" "$BACKUP_FILE"
+
+# Add pam_tid.so as the first auth line
+echo "Enabling Touch ID for sudo..."
+sudo sed -i '' '1a\
+'"$PAM_TID_LINE"'
+' "$PAM_FILE"
+
+echo ""
+echo "✓ Touch ID for sudo is now enabled!"
+echo ""
+echo "Test it by running: sudo echo 'Touch ID works!'"
+echo ""
+echo "To disable, run: sudo sed -i '' '/pam_tid.so/d' $PAM_FILE"
