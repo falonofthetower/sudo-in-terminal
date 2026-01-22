@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # sudo-in-terminal: Run a sudo command in a new terminal or tmux window
-# https://github.com/YOUR_USERNAME/sudo-in-terminal
+# https://github.com/falonofthetower/sudo-in-terminal
 #
 # Opens a separate terminal window for sudo authentication, captures output,
 # and returns it to the calling process. Useful for scripts and tools that

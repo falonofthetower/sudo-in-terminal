@@ -13,14 +13,14 @@ Useful for:
 ### Homebrew (macOS/Linux)
 
 ```bash
-brew install YOUR_USERNAME/tap/sudo-in-terminal
+brew install falonofthetower/tap/sudo-in-terminal
 ```
 
 ### Manual
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/sudo-in-terminal.git
+git clone https://github.com/falonofthetower/sudo-in-terminal.git
 cd sudo-in-terminal
 
 # Install
