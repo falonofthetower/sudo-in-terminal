@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+# sudo-in-terminal: Run a sudo command in a new terminal or tmux window
+# https://github.com/YOUR_USERNAME/sudo-in-terminal
+#
+# Opens a separate terminal window for sudo authentication, captures output,
+# and returns it to the calling process. Useful for scripts and tools that
+# need to run privileged commands but can't handle interactive password prompts.
+
+set -euo pipefail
+
+VERSION="1.0.0"
+TMUX_WINDOW_NAME="${SUDO_TERMINAL_WINDOW_NAME:-sudo-auth}"
+TIMEOUT="${SUDO_TERMINAL_TIMEOUT:-300}"
+
+usage() {
+    cat << EOF
+Usage: sudo-in-terminal [OPTIONS] <command> [args...]
+
+Run a command with sudo in a separate terminal window for authentication.
+Output is captured and returned after the command completes.
+
+Options:
+    -h, --help      Show this help message
+    -v, --version   Show version number
+    -t, --timeout   Timeout in seconds (default: 300)
+    -w, --window    Tmux window name (default: sudo-auth)
+
+Environment Variables:
+    SUDO_TERMINAL_TIMEOUT      Default timeout in seconds
+    SUDO_TERMINAL_WINDOW_NAME  Default tmux window name
+
+Examples:
+    sudo-in-terminal whoami
+    sudo-in-terminal apt install nginx
+    sudo-in-terminal -t 60 systemctl restart docker
+    sudo-in-terminal --window my-sudo chown root:root /etc/myfile
+
+Behavior:
+    - In tmux: Uses a named window (default: 'sudo-auth')
+    - macOS:   Opens a new Terminal.app window
+    - Linux:   Opens gnome-terminal, xterm, or konsole
+EOF
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -v|--version)
+            echo "sudo-in-terminal $VERSION"
+            exit 0
+            ;;
+        -t|--timeout)
+            TIMEOUT="$2"
+            shift 2
+            ;;
+        -w|--window)
+            TMUX_WINDOW_NAME="$2"
+            shift 2
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+if [[ $# -eq 0 ]]; then
+    usage >&2
+    exit 1
+fi
+
+# Build the command string
+CMD="$*"
+
+# Create temp files for the script, output, and completion signal
+TMPDIR_BASE=$(mktemp -d "/tmp/sudo-terminal.XXXXXX")
+TMPSCRIPT="$TMPDIR_BASE/script.sh"
+OUTPUT_FILE="$TMPDIR_BASE/output.txt"
+DONE_FILE="$TMPDIR_BASE/done"
+
+chmod 700 "$TMPDIR_BASE"
+
+# Cleanup on exit
+cleanup() {
+    rm -rf "$TMPDIR_BASE" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+cat > "$TMPSCRIPT" << SCRIPT_BODY
+#!/usr/bin/env bash
+exec > >(tee "$OUTPUT_FILE") 2>&1
+echo "Running: sudo $CMD"
+echo "---"
+sudo $CMD
+EXIT_CODE=\$?
+echo "---"
+if [[ \$EXIT_CODE -eq 0 ]]; then
+    echo "Command completed successfully (exit code: 0)"
+else
+    echo "Command failed with exit code: \$EXIT_CODE"
+fi
+echo \$EXIT_CODE > "$DONE_FILE"
+echo ""
+echo "Output captured. You can close this window."
+sleep 2
+SCRIPT_BODY
+
+chmod 700 "$TMPSCRIPT"
+
+launch_terminal() {
+    if [[ -n "${TMUX:-}" ]]; then
+        # We're inside tmux - use a named window
+        if tmux list-windows -F '#{window_name}' | grep -q "^${TMUX_WINDOW_NAME}$"; then
+            tmux send-keys -t "$TMUX_WINDOW_NAME" "bash '$TMPSCRIPT'" Enter
+        else
+            tmux new-window -n "$TMUX_WINDOW_NAME" "bash '$TMPSCRIPT'"
+        fi
+        echo ">>> Authenticate in tmux window '$TMUX_WINDOW_NAME' <<<" >&2
+
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        osascript << EOF > /dev/null
+tell application "Terminal"
+    activate
+    do script "bash '$TMPSCRIPT'"
+end tell
+EOF
+        echo ">>> Authenticate in the Terminal.app window that just opened <<<" >&2
+
+    elif command -v gnome-terminal &> /dev/null; then
+        gnome-terminal -- bash "$TMPSCRIPT" &
+        echo ">>> Authenticate in the gnome-terminal window <<<" >&2
+
+    elif command -v xterm &> /dev/null; then
+        xterm -e "bash '$TMPSCRIPT'" &
+        echo ">>> Authenticate in the xterm window <<<" >&2
+
+    elif command -v konsole &> /dev/null; then
+        konsole -e "bash '$TMPSCRIPT'" &
+        echo ">>> Authenticate in the konsole window <<<" >&2
+
+    else
+        echo "Error: No supported terminal emulator found." >&2
+        echo "Supported: tmux, Terminal.app (macOS), gnome-terminal, xterm, konsole" >&2
+        exit 1
+    fi
+}
+
+# Launch the terminal
+launch_terminal
+
+# Wait for completion
+ELAPSED=0
+while [[ ! -f "$DONE_FILE" ]] && [[ $ELAPSED -lt $TIMEOUT ]]; do
+    sleep 1
+    ((ELAPSED++))
+done
+
+if [[ -f "$DONE_FILE" ]]; then
+    # Output the captured results
+    if [[ -f "$OUTPUT_FILE" ]]; then
+        cat "$OUTPUT_FILE"
+    fi
+    EXIT_CODE=$(cat "$DONE_FILE")
+    trap - EXIT
+    cleanup
+    exit "${EXIT_CODE:-0}"
+else
+    echo "Timeout waiting for command completion ($TIMEOUT seconds)" >&2
+    trap - EXIT
+    cleanup
+    exit 124
+fi
