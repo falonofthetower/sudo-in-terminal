@@ -96,24 +96,13 @@ trap cleanup EXIT
 
 cat > "$TMPSCRIPT" << SCRIPT_BODY
 #!/usr/bin/env bash
-echo "┌─────────────────────────────────────────────────────────────┐"
-echo "│ sudo-in-terminal                                            │"
-echo "└─────────────────────────────────────────────────────────────┘"
+clear
+echo "Command: $CMD"
 echo ""
-echo "Command: sudo $CMD"
-echo ""
-sudo $CMD > "$OUTPUT_FILE.out" 2>&1
-EXIT_CODE=\$?
-cat "$OUTPUT_FILE.out"
-cp "$OUTPUT_FILE.out" "$OUTPUT_FILE"
-echo ""
-if [[ \$EXIT_CODE -eq 0 ]]; then
-    echo "✓ Success"
-else
-    echo "✗ Failed (exit code: \$EXIT_CODE)"
-fi
-echo \$EXIT_CODE > "$DONE_FILE"
-sleep 1
+sudo -p "Authenticate to run: $CMD
+Password: " $CMD > "$OUTPUT_FILE" 2>&1
+echo \$? > "$DONE_FILE"
+osascript -e 'tell application "Terminal" to close front window' 2>/dev/null &
 SCRIPT_BODY
 
 chmod 700 "$TMPSCRIPT"
