@@ -48,7 +48,12 @@ else
 fi
 
 echo ""
-if [[ -d "$HOME/.claude" ]]; then
+if command -v claude &> /dev/null; then
+    info "Configuring Claude Code..."
+    claude -p "Read https://github.com/falonofthetower/sudo-in-terminal README and configure yourself to use sudo-in-terminal (add to CLAUDE.md and settings.local.json). Be brief."
+    echo ""
+    success "Claude Code configured"
+elif [[ -d "$HOME/.claude" ]]; then
     echo "Tell Claude Code:"
     echo "  \"Read the sudo-in-terminal README and configure yourself to use it\""
 else
