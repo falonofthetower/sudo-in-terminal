@@ -10,25 +10,30 @@ Useful for:
 
 ## Installation
 
-### Homebrew (macOS/Linux)
+### Quick Install
 
 ```bash
-brew install falonofthetower/tap/sudo-in-terminal
+curl -fsSL https://raw.githubusercontent.com/falonofthetower/sudo-in-terminal/main/install.sh | bash
 ```
 
-### Manual
+The installer will:
+1. Install `sudo-in-terminal` to `/usr/local/bin`
+2. Optionally enable Touch ID for sudo (macOS)
+3. Optionally configure Claude Code integration
+
+### Manual Install
 
 ```bash
-# Clone the repo
 git clone https://github.com/falonofthetower/sudo-in-terminal.git
 cd sudo-in-terminal
+./install.sh
+```
 
-# Install
-make install
+Or copy the script directly:
 
-# Or manually copy to your PATH
-cp sudo-in-terminal /usr/local/bin/
-chmod +x /usr/local/bin/sudo-in-terminal
+```bash
+sudo curl -fsSL https://raw.githubusercontent.com/falonofthetower/sudo-in-terminal/main/sudo-in-terminal -o /usr/local/bin/sudo-in-terminal
+sudo chmod +x /usr/local/bin/sudo-in-terminal
 ```
 
 ## Usage
@@ -83,63 +88,42 @@ sudo-in-terminal -t 60 long-running-command
 
 1. Creates a temporary script with your command
 2. Opens a new terminal window and runs the script
-3. Waits for you to authenticate with sudo
+3. Waits for you to authenticate with sudo (password or Touch ID)
 4. Captures stdout/stderr to a temp file
 5. Returns the output to the original caller
 6. Cleans up temp files
 
 ## Touch ID for sudo (macOS)
 
-On macOS, you can use Touch ID (fingerprint) instead of typing your password for sudo. This makes authentication faster and works great with `sudo-in-terminal`.
-
-### Enable Touch ID for sudo
+The installer will offer to enable Touch ID for sudo. You can also enable it manually:
 
 ```bash
-# Run the included setup script
-./enable-touchid-sudo
-
-# Or with make
-make enable-touchid
-```
-
-This adds the `pam_tid.so` module to `/etc/pam.d/sudo`.
-
-### Manual setup
-
-Add this line to the top of `/etc/pam.d/sudo` (after the first comment block):
-
-```
+# Enable
+sudo sed -i '' '2a\
 auth       sufficient     pam_tid.so
-```
+' /etc/pam.d/sudo
 
-### Disable Touch ID for sudo
-
-```bash
+# Disable
 sudo sed -i '' '/pam_tid.so/d' /etc/pam.d/sudo
 ```
 
-### Note on Apple Silicon Macs
-
-Touch ID for sudo works in Terminal.app and most terminal emulators. If you're using tmux, you may need [pam-reattach](https://github.com/fabianishere/pam_reattach) for Touch ID to work inside tmux sessions.
+**Note:** If using tmux, you may need [pam-reattach](https://github.com/fabianishere/pam_reattach) for Touch ID to work inside tmux sessions.
 
 ## Claude Code Integration
 
-Add to `~/.claude/CLAUDE.md`:
+The installer can configure Claude Code automatically. For manual setup:
 
+**~/.claude/CLAUDE.md:**
 ```markdown
 ## sudo-in-terminal
 
 When running commands that require `sudo`, use:
-
-\`\`\`bash
 sudo-in-terminal <command>
-\`\`\`
 
 This opens a separate terminal for password authentication and returns the output.
 ```
 
-Add to `~/.claude/settings.local.json`:
-
+**~/.claude/settings.local.json:**
 ```json
 {
   "permissions": {
@@ -148,6 +132,12 @@ Add to `~/.claude/settings.local.json`:
     ]
   }
 }
+```
+
+## Uninstall
+
+```bash
+sudo rm /usr/local/bin/sudo-in-terminal
 ```
 
 ## License
