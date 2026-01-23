@@ -62,8 +62,7 @@ else
     USE_SUDO=true
     info "Installing to $INSTALL_DIR (requires sudo)"
     # Prompt for sudo upfront to cache credentials
-    # Use /dev/tty to allow password entry when script is piped
-    sudo -v </dev/tty || error "sudo access required for installation"
+    sudo -v || error "sudo access required for installation"
 fi
 
 # Install main script
@@ -100,7 +99,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     else
         echo "Touch ID lets you authenticate sudo with your fingerprint."
         echo ""
-        read -p "Enable Touch ID for sudo? [y/N] " -n 1 -r TOUCHID_REPLY </dev/tty || TOUCHID_REPLY="n"
+        read -p "Enable Touch ID for sudo? [y/N] " -n 1 -r TOUCHID_REPLY  || TOUCHID_REPLY="n"
         echo ""
         if [[ $TOUCHID_REPLY =~ ^[Yy]$ ]]; then
             info "Enabling Touch ID for sudo..."
@@ -122,7 +121,7 @@ echo "└───────────────────────�
 echo ""
 
 if [[ -d "$HOME/.claude" ]]; then
-    read -p "Configure Claude Code to use sudo-in-terminal? [y/N] " -n 1 -r CLAUDE_REPLY </dev/tty || CLAUDE_REPLY="n"
+    read -p "Configure Claude Code to use sudo-in-terminal? [y/N] " -n 1 -r CLAUDE_REPLY  || CLAUDE_REPLY="n"
     echo ""
     if [[ $CLAUDE_REPLY =~ ^[Yy]$ ]]; then
         # Add to CLAUDE.md

@@ -13,7 +13,7 @@ Useful for:
 ### Quick Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/falonofthetower/sudo-in-terminal/main/install.sh | bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/falonofthetower/sudo-in-terminal/main/install.sh)"
 ```
 
 The installer will:
