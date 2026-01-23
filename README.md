@@ -2,6 +2,8 @@
 
 Run sudo commands in a separate terminal window for interactive password authentication, with output captured and returned to the caller.
 
+> **Warning:** Use at your own risk. This tool executes commands with root privileges. Always verify commands before authenticating.
+
 Useful for:
 - **CLI tools** that need to run privileged commands but can't handle interactive prompts
 - **AI coding assistants** (like Claude Code) that need sudo access
