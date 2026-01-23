@@ -50,7 +50,7 @@ fi
 echo ""
 if command -v claude &> /dev/null; then
     info "Configuring Claude Code..."
-    claude -p "Read https://github.com/falonofthetower/sudo-in-terminal README and configure yourself to use sudo-in-terminal (add to CLAUDE.md and settings.local.json). Be brief."
+    claude -p "Add sudo-in-terminal to ~/.claude/CLAUDE.md and add Bash(sudo-in-terminal:*) permission to ~/.claude/settings.local.json. No explanation needed." --allowedTools "Edit Read"
     echo ""
     success "Claude Code configured"
 elif [[ -d "$HOME/.claude" ]]; then
