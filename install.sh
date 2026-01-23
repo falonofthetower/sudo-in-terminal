@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # install.sh - Install sudo-in-terminal
-set -euo pipefail
+set -eo pipefail
 
 REPO_URL="https://github.com/falonofthetower/sudo-in-terminal"
+RAW_URL="https://raw.githubusercontent.com/falonofthetower/sudo-in-terminal/main"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 SCRIPT_NAME="sudo-in-terminal"
 
@@ -18,48 +19,61 @@ success() { echo -e "${GREEN}✓${NC} $1"; }
 warn() { echo -e "${YELLOW}!${NC} $1"; }
 error() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
-# Detect if we're running from the repo or via curl
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "$SCRIPT_DIR/sudo-in-terminal" ]]; then
-    FROM_REPO=true
-else
-    FROM_REPO=false
-fi
-
 echo ""
 echo "┌─────────────────────────────────────┐"
 echo "│     sudo-in-terminal installer      │"
 echo "└─────────────────────────────────────┘"
 echo ""
 
+# Detect if we're running from the repo or via curl
+SCRIPT_DIR=""
+if [[ -n "${BASH_SOURCE[0]:-}" ]] && [[ "${BASH_SOURCE[0]}" != "bash" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+fi
+
+if [[ -n "$SCRIPT_DIR" ]] && [[ -f "$SCRIPT_DIR/sudo-in-terminal" ]]; then
+    FROM_REPO=true
+else
+    FROM_REPO=false
+fi
+
 # Check for required tools
-if ! command -v curl &> /dev/null && [[ "$FROM_REPO" == false ]]; then
+if ! command -v curl &> /dev/null; then
     error "curl is required for installation"
 fi
 
-# Create temp dir if installing from remote
-if [[ "$FROM_REPO" == false ]]; then
-    TMPDIR=$(mktemp -d)
-    trap "rm -rf $TMPDIR" EXIT
+# Create temp dir for downloads
+TMPDIR=$(mktemp -d)
+trap "rm -rf $TMPDIR" EXIT
 
+if [[ "$FROM_REPO" == true ]]; then
+    cp "$SCRIPT_DIR/sudo-in-terminal" "$TMPDIR/sudo-in-terminal"
+else
     info "Downloading sudo-in-terminal..."
-    curl -fsSL "$REPO_URL/raw/main/sudo-in-terminal" -o "$TMPDIR/sudo-in-terminal"
-    curl -fsSL "$REPO_URL/raw/main/enable-touchid-sudo" -o "$TMPDIR/enable-touchid-sudo"
-    SCRIPT_DIR="$TMPDIR"
+    curl -fsSL "$RAW_URL/sudo-in-terminal" -o "$TMPDIR/sudo-in-terminal"
 fi
+
+chmod +x "$TMPDIR/sudo-in-terminal"
 
 # Check if install dir is writable
 if [[ -w "$INSTALL_DIR" ]]; then
-    SUDO=""
+    USE_SUDO=false
 else
-    SUDO="sudo"
+    USE_SUDO=true
     info "Installing to $INSTALL_DIR (requires sudo)"
+    # Prompt for sudo upfront to cache credentials
+    sudo -v || error "sudo access required for installation"
 fi
 
 # Install main script
 info "Installing sudo-in-terminal to $INSTALL_DIR..."
-$SUDO cp "$SCRIPT_DIR/sudo-in-terminal" "$INSTALL_DIR/$SCRIPT_NAME"
-$SUDO chmod +x "$INSTALL_DIR/$SCRIPT_NAME"
+if [[ "$USE_SUDO" == true ]]; then
+    sudo cp "$TMPDIR/sudo-in-terminal" "$INSTALL_DIR/$SCRIPT_NAME"
+    sudo chmod +x "$INSTALL_DIR/$SCRIPT_NAME"
+else
+    cp "$TMPDIR/sudo-in-terminal" "$INSTALL_DIR/$SCRIPT_NAME"
+    chmod +x "$INSTALL_DIR/$SCRIPT_NAME"
+fi
 success "Installed sudo-in-terminal"
 
 # Verify installation
@@ -85,9 +99,9 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     else
         echo "Touch ID lets you authenticate sudo with your fingerprint."
         echo ""
-        read -p "Enable Touch ID for sudo? [y/N] " -n 1 -r
+        read -p "Enable Touch ID for sudo? [y/N] " -n 1 -r TOUCHID_REPLY </dev/tty || TOUCHID_REPLY="n"
         echo ""
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if [[ $TOUCHID_REPLY =~ ^[Yy]$ ]]; then
             info "Enabling Touch ID for sudo..."
             sudo sed -i '' '2a\
 auth       sufficient     pam_tid.so
@@ -107,9 +121,9 @@ echo "└───────────────────────�
 echo ""
 
 if [[ -d "$HOME/.claude" ]]; then
-    read -p "Configure Claude Code to use sudo-in-terminal? [y/N] " -n 1 -r
+    read -p "Configure Claude Code to use sudo-in-terminal? [y/N] " -n 1 -r CLAUDE_REPLY </dev/tty || CLAUDE_REPLY="n"
     echo ""
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if [[ $CLAUDE_REPLY =~ ^[Yy]$ ]]; then
         # Add to CLAUDE.md
         CLAUDE_MD="$HOME/.claude/CLAUDE.md"
         if [[ -f "$CLAUDE_MD" ]] && grep -q "sudo-in-terminal" "$CLAUDE_MD" 2>/dev/null; then
@@ -139,6 +153,7 @@ EOF
                 # Merge into existing settings
                 if command -v jq &> /dev/null; then
                     jq '.permissions.allow += ["Bash(sudo-in-terminal:*)"]' "$SETTINGS" > "$SETTINGS.tmp" && mv "$SETTINGS.tmp" "$SETTINGS"
+                    success "Added permission to ~/.claude/settings.local.json"
                 else
                     warn "jq not installed - please manually add permission to $SETTINGS"
                     echo '   "Bash(sudo-in-terminal:*)"'
@@ -153,8 +168,8 @@ EOF
   }
 }
 EOF
+                success "Added permission to ~/.claude/settings.local.json"
             fi
-            success "Added permission to ~/.claude/settings.local.json"
         fi
     fi
 else
@@ -164,7 +179,7 @@ fi
 
 echo ""
 echo "┌─────────────────────────────────────┐"
-echo "│           Installation complete     │"
+echo "│        Installation complete        │"
 echo "└─────────────────────────────────────┘"
 echo ""
 echo "Usage:"
