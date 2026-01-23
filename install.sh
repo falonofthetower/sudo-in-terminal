@@ -48,20 +48,11 @@ else
 fi
 
 echo ""
-echo "Usage: sudo-in-terminal <command>"
-echo ""
-
-# Print optional setup hints
-if [[ "$OSTYPE" == "darwin"* ]] && ! grep -q "pam_tid.so" /etc/pam.d/sudo 2>/dev/null; then
-    echo "Optional: Enable Touch ID for sudo:"
-    echo "  sudo sed -i '' '2a\\"
-    echo "auth       sufficient     pam_tid.so"
-    echo "' /etc/pam.d/sudo"
-    echo ""
-fi
-
 if [[ -d "$HOME/.claude" ]]; then
-    echo "Optional: Configure Claude Code integration:"
-    echo "  See: https://github.com/falonofthetower/sudo-in-terminal#claude-code-integration"
-    echo ""
+    echo "Tell Claude Code:"
+    echo "  \"Read the sudo-in-terminal README and configure yourself to use it\""
+else
+    echo "Usage: sudo-in-terminal <command>"
+    echo "Docs:  https://github.com/falonofthetower/sudo-in-terminal"
 fi
+echo ""
