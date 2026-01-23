@@ -62,7 +62,8 @@ else
     USE_SUDO=true
     info "Installing to $INSTALL_DIR (requires sudo)"
     # Prompt for sudo upfront to cache credentials
-    sudo -v || error "sudo access required for installation"
+    # Use /dev/tty to allow password entry when script is piped
+    sudo -v </dev/tty || error "sudo access required for installation"
 fi
 
 # Install main script
