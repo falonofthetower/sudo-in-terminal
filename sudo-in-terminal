@@ -96,21 +96,24 @@ trap cleanup EXIT
 
 cat > "$TMPSCRIPT" << SCRIPT_BODY
 #!/usr/bin/env bash
-exec > >(tee "$OUTPUT_FILE") 2>&1
-echo "Running: sudo $CMD"
-echo "---"
-sudo $CMD
+echo "┌─────────────────────────────────────────────────────────────┐"
+echo "│ sudo-in-terminal                                            │"
+echo "└─────────────────────────────────────────────────────────────┘"
+echo ""
+echo "Command: sudo $CMD"
+echo ""
+sudo $CMD > "$OUTPUT_FILE.out" 2>&1
 EXIT_CODE=\$?
-echo "---"
+cat "$OUTPUT_FILE.out"
+cp "$OUTPUT_FILE.out" "$OUTPUT_FILE"
+echo ""
 if [[ \$EXIT_CODE -eq 0 ]]; then
-    echo "Command completed successfully (exit code: 0)"
+    echo "✓ Success"
 else
-    echo "Command failed with exit code: \$EXIT_CODE"
+    echo "✗ Failed (exit code: \$EXIT_CODE)"
 fi
 echo \$EXIT_CODE > "$DONE_FILE"
-echo ""
-echo "Output captured. You can close this window."
-sleep 2
+sleep 1
 SCRIPT_BODY
 
 chmod 700 "$TMPSCRIPT"
@@ -156,6 +159,10 @@ EOF
 # Launch the terminal
 launch_terminal
 
+echo "" >&2
+echo "Command: sudo $CMD" >&2
+echo "Waiting for authentication..." >&2
+
 # Wait for completion
 ELAPSED=0
 while [[ ! -f "$DONE_FILE" ]] && [[ $ELAPSED -lt $TIMEOUT ]]; do
@@ -164,11 +171,18 @@ while [[ ! -f "$DONE_FILE" ]] && [[ $ELAPSED -lt $TIMEOUT ]]; do
 done
 
 if [[ -f "$DONE_FILE" ]]; then
-    # Output the captured results
+    EXIT_CODE=$(cat "$DONE_FILE")
+    echo "" >&2
+    if [[ $EXIT_CODE -eq 0 ]]; then
+        echo "✓ Command succeeded" >&2
+    else
+        echo "✗ Command failed (exit code: $EXIT_CODE)" >&2
+    fi
+    echo "" >&2
+    # Output just the command results
     if [[ -f "$OUTPUT_FILE" ]]; then
         cat "$OUTPUT_FILE"
     fi
-    EXIT_CODE=$(cat "$DONE_FILE")
     trap - EXIT
     cleanup
     exit "${EXIT_CODE:-0}"
