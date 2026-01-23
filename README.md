@@ -10,30 +10,14 @@ Useful for:
 
 ## Installation
 
-### Quick Install
-
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/falonofthetower/sudo-in-terminal/main/install.sh)"
+curl -fsSL https://raw.githubusercontent.com/falonofthetower/sudo-in-terminal/main/install.sh | bash
 ```
 
-The installer will:
-1. Install `sudo-in-terminal` to `/usr/local/bin`
-2. Optionally enable Touch ID for sudo (macOS)
-3. Optionally configure Claude Code integration
-
-### Manual Install
+This installs to `~/.local/bin`. To install system-wide:
 
 ```bash
-git clone https://github.com/falonofthetower/sudo-in-terminal.git
-cd sudo-in-terminal
-./install.sh
-```
-
-Or copy the script directly:
-
-```bash
-sudo curl -fsSL https://raw.githubusercontent.com/falonofthetower/sudo-in-terminal/main/sudo-in-terminal -o /usr/local/bin/sudo-in-terminal
-sudo chmod +x /usr/local/bin/sudo-in-terminal
+INSTALL_DIR=/usr/local/bin sudo -E bash -c "$(curl -fsSL https://raw.githubusercontent.com/falonofthetower/sudo-in-terminal/main/install.sh)"
 ```
 
 ## Usage
